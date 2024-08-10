@@ -7,32 +7,38 @@
 
 import SwiftUI
 
-extension FileManager {
-    func write(path: String, data: Data) throws -> Void {
-        let url = URL.documentsDirectory.appending(path: path)
-        try data.write(to: url, options: [.atomic, .completeFileProtection])
+struct LoadingView: View {
+    var body: some View {
+        Text("loading")
     }
-    
-    func read(path: String) throws -> String {
-        let url = URL.documentsDirectory.appending(path: path)
-        return try String(contentsOf: url)
+}
+
+struct SuccessView: View {
+    var body: some View {
+        Text("success")
+    }
+}
+struct FailedView: View {
+    var body: some View {
+        Text("failed")
     }
 }
 
 struct ContentView: View {
-
+    enum LoadingState {
+        case loading, success, failed
+    }
+    
+    @State private var loadingState: LoadingState = .loading
+    
     var body: some View {
-        Button("Read and write") {
-            let fileManger = FileManager.default
-            let data = Data("Test messgae".utf8)
-           
-            do {
-                try fileManger.write(path: "message.txt", data: data)
-                let input = try fileManger.read(path: "message.txt")
-                print(input)
-            } catch {
-                print("Failed to write message to file: \(error.localizedDescription)")
-            }
+        switch(loadingState) {
+        case .loading:
+            LoadingView()
+        case .success:
+            SuccessView()
+        case .failed:
+            FailedView()
         }
     }
 }
