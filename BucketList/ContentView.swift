@@ -14,38 +14,53 @@ struct ContentView: View {
         span: MKCoordinateSpan(latitudeDelta: 10, longitudeDelta: 10))
     )
     
-    @State private var locations = [Location]()
-    @State private var selectedLocation: Location?
+    @State private var vm = ViewModel()
     
     var body: some View {
-        MapReader { proxy in
-            Map(initialPosition: startPosition) {
-                ForEach(locations) { location in
-                    Annotation(location.name, coordinate: location.coordinate) {
-                        Image(systemName: "star.circle")
-                            .resizable()
-                            .foregroundStyle(.red)
-                            .frame(width: 44, height: 44)
-                            .clipShape(.circle)
-                            .onLongPressGesture {
-                                selectedLocation = location
+        if vm.isUnlocked {
+            NavigationStack {
+                VStack {
+                    
+                    MapReader { proxy in
+                        Map(initialPosition: startPosition) {
+                            ForEach(vm.locations) { location in
+                                Annotation(location.name, coordinate: location.coordinate) {
+                                    Image(systemName: "star.circle")
+                                        .resizable()
+                                        .foregroundStyle(.red)
+                                        .frame(width: 44, height: 44)
+                                        .clipShape(.circle)
+                                        .onLongPressGesture {
+                                            vm.selectedLocation = location
+                                        }
+                                }
                             }
+                        }
+                        .mapStyle(vm.showHybridMap ? .hybrid : .standard)
+                        .onTapGesture { position in
+                            if let coordinate = proxy.convert(position, from: .local) {
+                                vm.add(at: coordinate)
+                            }
+                        }
+                        .sheet(item: $vm.selectedLocation) { location in
+                            EditView(location: location) { vm.update(location: $0) }
+                        }
+                    }
+                    .navigationTitle("BucketList")
+                    .toolbar {
+                        Toggle(isOn: $vm.showHybridMap) {
+                            Text("Hybrid")
+                        }
                     }
                 }
             }
-            .onTapGesture { position in
-                if let coordinate = proxy.convert(position, from: .local) {
-                    let newLocation = Location(id: UUID(), name: "New Location", description: "", latitude: coordinate.latitude, longitude: coordinate.longitude)
-                    locations.append(newLocation)
-                }
+        } else {
+            Button() {
+                vm.authenticate()
+            } label: {
+                ContentUnavailableView("Login in to view your locations", systemImage: "swift")
             }
-            .sheet(item: $selectedLocation) { location in
-                EditView(location: location) { newLocation in
-                    if let index = locations.firstIndex(of: location) {
-                        locations[index] = newLocation
-                    }
-                }
-            }
+            .buttonStyle(.plain)
         }
     }
 }
